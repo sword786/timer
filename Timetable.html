@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Timetable Alarm</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .input-container input,
+        .input-container select,
+        .input-container button {
+            width: 30%;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+        }
+
+        .input-container button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+
+        .input-container button:hover {
+            background-color: #218838;
+        }
+
+        .sound-container,
+        .volume-container {
+            margin-bottom: 20px;
+        }
+
+        .volume-container input {
+            width: 100%;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task {
+            font-size: 16px;
+        }
+
+        .priority-high {
+            background-color: #f1c40f;
+        }
+
+        .priority-low {
+            background-color: #27ae60;
+        }
+
+        .days-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .days-container label {
+            margin-right: 10px;
+        }
+
+        .pomodoro-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .pomodoro-container button {
+            background-color: #ff6347;
+            padding: 10px 20px;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .pomodoro-container button:hover {
+            background-color: #d9534f;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Advanced Timetable Alarm</h1>
+
+    <!-- Custom sound upload -->
+    <div class="sound-container">
+        <label for="sound-input">Upload Custom Sound:</label>
+        <input type="file" id="sound-input" accept="audio/*">
+    </div>
+
+    <!-- Volume Control -->
+    <div class="volume-container">
+        <label for="volume-input">Alarm Volume:</label>
+        <input type="range" id="volume-input" min="0" max="1" step="0.1" value="0.5">
+    </div>
+
+    <!-- Task Input -->
+    <div class="input-container">
+        <input type="text" id="task-input" placeholder="Enter your task">
+        <input type="time" id="time-input" placeholder="Set time">
+        <select id="priority-input">
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+        </select>
+        <button onclick="addTask()">Add Task</button>
+    </div>
+
+    <!-- Day Selection -->
+    <div class="days-container">
+        <label><input type="checkbox" id="monday"> Monday</label>
+        <label><input type="checkbox" id="tuesday"> Tuesday</label>
+        <label><input type="checkbox" id="wednesday"> Wednesday</label>
+        <label><input type="checkbox" id="thursday"> Thursday</label>
+        <label><input type="checkbox" id="friday"> Friday</label>
+        <label><input type="checkbox" id="saturday"> Saturday</label>
+        <label><input type="checkbox" id="sunday"> Sunday</label>
+    </div>
+
+    <!-- Pomodoro Timer -->
+    <div class="pomodoro-container">
+        <button onclick="startPomodoro()">Start Pomodoro</button>
+        <button onclick="resetPomodoro()">Reset Pomodoro</button>
+    </div>
+
+    <!-- Task List -->
+    <ul id="task-list">
+        <!-- Tasks will be listed here -->
+    </ul>
+</div>
+
+<audio id="alarm-sound" style="display:none" loop></audio>
+
+<script>
+    let customSound = document.getElementById('alarm-sound');
+    let alarmPlaying = false;
+
+    // Set the default sound or allow user to upload custom sound
+    document.getElementById('sound-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            customSound.src = url;
+        }
+    });
+
+    // Set Alarm Volume
+    const volumeControl = document.getElementById('volume-input');
+    volumeControl.addEventListener('input', () => {
+        customSound.volume = volumeControl.value;
+    });
+
+    function addTask() {
+        const taskInput = document.getElementById('task-input');
+        const timeInput = document.getElementById('time-input');
+        const taskText = taskInput.value.trim();
+        const time = timeInput.value;
+        const priority = document.getElementById('priority-input').value;
+        const daysSelected = getSelectedDays();
+
+        if (taskText === '') {
+            alert('Please enter a task!');
+            return;
+        }
+
+        if (!time) {
+            alert('Please set a time!');
+            return;
+        }
+
+        if (daysSelected.length === 0) {
+            alert('Please select at least one day!');
+            return;
+        }
+
+        const taskList = document.getElementById('task-list');
+        const li = document.createElement('li');
+        li.classList.add(priority);
+        li.innerHTML = `
+            <span class="task">${taskText}</span>
+            <span class="timer">${time}</span>
+            <span class="days">Days: ${daysSelected.join(', ')}</span>
+            <button onclick="removeTask(this)">Delete</button>
+        `;
+        taskList.appendChild(li);
+
+        // Set the start time for the task
+        const taskTime = new Date();
+        const [hours, minutes] = time.split(':');
+        taskTime.setHours(hours, minutes, 0, 0);
+
+        // Schedule the task to repeat on selected days
+        scheduleTask(taskTime, taskText, priority);
+    }
+
+    // Helper function to get selected days
+    function getSelectedDays() {
+        const days = [];
+        if (document.getElementById('monday').checked) days.push('Monday');
+        if (document.getElementById('tuesday').checked) days.push('Tuesday');
+        if (document.getElementById('wednesday').checked) days.push('Wednesday');
+        if (document.getElementById('thursday').checked) days.push('Thursday');
+        if (document.getElementById('friday').checked) days.push('Friday');
+        if (document.getElementById('saturday').checked) days.push('Saturday');
+        if (document.getElementById('sunday').checked) days.push('Sunday');
+        return days;
+    }
+
+    // Helper function to remove tasks
+    function removeTask(button) {
+        const li = button.parentElement;
+        li.remove();
+    }
+
+    // Function to schedule the alarm and notify
+    function scheduleTask(time, taskText, priority) {
+        const now = new Date();
+        const delay = time.getTime() - now.getTime();
+
+        if (delay <= 0) return;
+
+        setTimeout(() => {
+            customSound.play();
+            alert(`Time's up! It's time for: ${taskText}`);
+        }, delay);
+    }
+
+    // Pomodoro Timer Functions
+    let pomodoroInterval;
+    let pomodoroTime = 25 * 60; // 25 minutes in seconds
+
+    function startPomodoro() {
+        if (pomodoroInterval) clearInterval(pomodoroInterval);
+
+        pomodoroInterval = setInterval(() => {
+            pomodoroTime--;
+            if (pomodoroTime <= 0) {
+                clearInterval(pomodoroInterval);
+                alert('Pomodoro session finished!');
+                pomodoroTime = 25 * 60;
+            }
+        }, 1000);
+    }
+
+    function resetPomodoro() {
+        clearInterval(pomodoroInterval);
+        pomodoroTime = 25 * 60;
+    }
+</script>
+
+</body>
+</html>
